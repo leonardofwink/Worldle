@@ -1,0 +1,357 @@
+---
+title: "Worldle"
+email: "leonardofwink@gmail.com"
+author: "Leonardo Fernandes Wink"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
+output:
+  bookdown::html_document2:
+    theme: flatly
+    highlight: haddock
+    keep_md: yes
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    fig_caption: yes
+    code_download: false
+    code_folding: show
+  word_document: 
+    toc: yes
+    keep_md: yes
+  pdf_document:
+    toc: yes
+  github_document:
+    html_preview: true
+always_allow_html: yes
+editor_options: 
+  chunk_output_type: console
+fig.align: center
+---
+
+```{r pré-config, echo = FALSE}
+R_LIBS_SITE = "E:\\Documents\\R\\R-4.2.2\\library"
+pacman::p_load(bookdown)
+```
+
+```{r configurando exibir/ocultar código e resultados, include=FALSE}
+hooks = knitr::knit_hooks$get()
+
+hook_foldable = function(type) {
+  force(type)
+  function(x, options) {
+    res = hooks[[type]](x, options)
+    
+    if (isFALSE(options[[paste0("fold.", type)]])) return(res)
+    
+    paste0(
+      "<details><summary>", type, "</summary>\n\n",
+      res,
+      "\n\n</details>"
+    )
+  }
+}
+
+knitr::knit_hooks$set(
+  Output = hook_foldable("output"),
+  Plot = hook_foldable("plot")
+)
+```
+
+# Pacotes
+
+## Pacotes *ETL*
+
+```{r Pacotes necessários, message = FALSE, warning = TRUE}
+pacman::p_load(
+  # ETL (extract, transform, load)
+  janitor, readr, readxl, lubridate,
+  dplyr, 
+  tidyverse, 
+  glue,
+  skimr,
+  # Visualização
+  ggplot2,
+  rmarkdown, 
+  knitr,
+  kableExtra,
+  ggthemes,
+  ggtext
+)
+```
+
+## Pacotes Geoespaciais {#sec-pacotes-geoespaciais}
+
+```{r pacotes-geoespaciais, message = TRUE, warning = FALSE}
+pacman::p_load(
+  sf, raster, 
+  leaflet, leaflet.extras,
+  rnaturalearth,
+  # rgdal, rgeos,
+  # maps,
+  # mapview,
+  # ggmap
+)
+```
+
+# Montando o database
+
+## Worldle
+```{r}
+database <- tibble::tribble(
+  ~dia, ~pais, ~distancia, ~direcao,
+  "17/02/2023", "Vietnam", 9935, "West",
+  "17/02/2023", "Republic of the Congo", 3854, "North",
+  "17/02/2023", "Finland", 3326, "South",
+  "17/02/2023", "Egypt", 2184, "West",
+  "17/02/2023", "Morocco", 1571, "East",
+  "17/02/2023", "Tunisia", 0, "Target",
+  
+  "24/02/2023", "Turkey", 10581, "West",
+  "24/02/2023", "Algeria", 7549, "West",
+  "24/02/2023", "Colombia", 879, "East",
+  "24/02/2023", "Venezuela", 0, "Target",
+  
+  "26/02/2023", "Congo", 2641, "South",
+  "26/02/2023", "Namibia", 640, "East",
+  "26/02/2023", "Eswatini", 831, "Northwest",
+  "26/02/2023", "Democratic Republic of the Congo", 2060, "South",
+  "26/02/2023", "Botswana", 0, "Target",
+  
+  "28/02/2023", "Turkmenistan", 4199, "West",
+  "28/02/2023", "Estonia", 1722, "Southwest",
+  "28/02/2023", "Switzerland", 0, "Target"
+  
+)
+```
+
+## Globle
+```{r}
+database_globle <- tibble::tribble(
+  ~dia, ~pais, ~ordem, ~proximidade,
+  "24/02/2023", "Turkey",                   6, "Frio",
+  "24/02/2023", "Ecuador",                  5, "Morno",
+  "24/02/2023", "Venezuela",                4, "Quente",
+  "24/02/2023", "United States of America", 4, "Quente",
+  "24/02/2023", "Cuba",                     4, "Quente",
+  "24/02/2023", "Guatemala",                2, "Adjacente",
+  "24/02/2023", "Mexico",                   2, "Adjacente",
+  "24/02/2023", "Belize",                   1, "Target",
+  
+  "26/02/2023", "Egypt", 6, "Frio",
+  "26/02/2023", "Georgia", 6, "Frio",
+  "26/02/2023", "Morocco", 6, "Frio",
+  "26/02/2023", "Finland", 6, "Frio",
+  "26/02/2023", "Malta", 6, "Frio",
+  "26/02/2023", "Estonia", 6, "Frio",
+  "26/02/2023", "Norway", 6, "Frio",
+  "26/02/2023", "Monaco", 6, "Frio",
+  "26/02/2023", "Luxembourg", 6, "Frio",
+  "26/02/2023", "France", 6, "Frio",
+  "26/02/2023", "Croatia", 6, "Frio",
+  "26/02/2023", "Germany", 6, "Frio",
+  "26/02/2023", "Italy", 6, "Frio",
+  "26/02/2023", "Switzerland", 6, "Frio",
+  "26/02/2023", "Austria", 1, "Target",
+  
+  "28/02/2023", "Guatemala", 6, "Frio",
+  "28/02/2023", "Haiti", 6, "Frio",
+  "28/02/2023", "Guyana", 1, "Target"
+)
+```
+Tornar a coluna `proximidade` `as.factor()` e dar cores conforme a proximidade.
+
+## Salvando o database
+```{r}
+write.csv(database, "worldle_database.csv")
+write.csv(database_globle, "globle_database.csv")
+```
+
+# Chutes
+
+Aqui são dados os primeiros chutes.
+
+
+```{r}
+(guesses <- database %>% 
+  filter(dia == "28/02/2023")
+ )
+  
+chutes <- guesses %>% 
+  dplyr::select(pais)
+# 
+#   tibble::tribble(
+#   ~pais, ~distancia, ~direcao,
+#   "Vietnam", 9935, "West",
+#   "Republic of the Congo", 3854, "North",
+#   "Finland", 3326, "South",
+# )
+```
+
+# Limite dos países
+
+Baixando os limites dos países.
+
+```{r}
+data(countries110, package = "rnaturalearth")
+```
+
+Convertendo pro formato `sf` e definindo SRC. 
+
+```{r}
+countries <- countries110 %>% 
+  st_as_sf() %>% 
+  st_transform(crs = 4326) %>% #4326 = WGS84, 4674 = SIRGAS2000
+  clean_names()
+
+# countries <- ne_countries(
+#   type = "tiny_countries",
+#   returnclass = "sf"
+# )
+```
+
+```{r}
+countries %>% 
+  dplyr::select(brk_name) %>% 
+  filter(
+    grepl("Congo", brk_name)
+  )
+```
+
+# Unificando países com nomes difíceis
+```{r}
+guesses <- guesses %>% 
+  mutate(
+    pais = recode(
+      .x = pais, 
+      "Eswatini" = "eSwatini",
+      "Congo" = "Republic of the Congo"
+    )
+  )
+```
+
+
+Unificando a variável `chutes` com o limite dos países. Não existe o país `Malta`.
+
+```{r}
+(starting <- countries %>% 
+   clean_names() %>% 
+   dplyr::select(
+     type, 
+     admin, 
+     brk_name, 
+     formal_en, 
+     note_brk,
+     name_en,
+     name_pt
+   ) %>%
+   # filter(name_en == "Guyane")
+   inner_join(
+     guesses,
+     by = c("brk_name" = "pais")
+   )
+)
+  
+starting %>% glimpse()
+# dplyr::select(SUBUNIT) %>% 
+  # dplyr::select(formal_en) %>%
+  # filter(
+  #   formal_en == "Iran"
+  # ) %>%
+  # inner_join(
+  #   guesses_30_01_2023, by = c("brk_name" = "pais")
+  # ) %>% 
+  # st_as_sf() %>%
+  # st_transform(crs = 4326) #4326 = WGS84, 4674 = SIRGAS2000
+
+# %>% 
+#   mutate(
+#     color = RColorBrewer::brewer.pal(
+#       # n(),
+#       3,
+#       "Set1")
+#   )
+```
+
+Encontrar o centróide de cada país*.* Não se aplica ao `USA`.
+
+```{r}
+(centers <- starting %>% 
+  st_make_valid() %>% 
+  st_centroid()
+)
+```
+
+# Visualização do mapa
+
+```{r}
+(test <- leaflet() %>% 
+   addTiles() %>% 
+   addPolygons(
+     data = starting,
+     # fillColor = ~color,
+     stroke = FALSE,
+     opacity = 1,
+   ) %>%
+   addMarkers(
+     data = centers
+   )
+ )
+```
+
+# Gerando o raio
+
+```{r}
+circles <- centers %>% 
+  dplyr::select(name_en, brk_name, distancia, direcao, geometry) %>% 
+  st_buffer(
+    dist = centers$distancia*1000
+  ) %>% 
+  st_cast(
+    "LINESTRING"
+  )
+```
+
+# Mapa+Raio
+
+```{r}
+leaflet() %>% 
+  # addTiles() %>% 
+  addProviderTiles(
+    # "Esri.WorldImagery" #Imagem de satélite
+    "OpenStreetMap.Mapnik" #OpenStreetMap -> Software livre
+  ) %>% 
+  addPolylines(
+    data = circles,
+    # color = ~brk_name,
+    popup = ~brk_name
+  ) %>% 
+  addMarkers(
+    data = centers
+  )
+```
+
+# Interseção
+
+```{r, error = TRUE}
+(overlaps <- circles %>% 
+  st_intersection() %>% 
+  filter(
+    n.overlaps >= 2
+  )
+)
+```
+
+# Zoom na área
+
+```{r, error = TRUE}
+leaflet() %>% 
+  addTiles() %>% 
+  addCircles(
+    data = overlaps
+  ) %>% 
+  # 100km search area
+  addPolylines(
+    data = overlaps %>% st_buffer(dist = 100*1000)
+  )
+```
