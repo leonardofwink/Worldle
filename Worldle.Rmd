@@ -120,7 +120,11 @@ database <- tibble::tribble(
   
   "28/02/2023", "Turkmenistan", 4199, "West",
   "28/02/2023", "Estonia", 1722, "Southwest",
-  "28/02/2023", "Switzerland", 0, "Target"
+  "28/02/2023", "Switzerland", 0, "Target",
+  
+  "01/03/2023", "Lithuania", 8196, "Southwest",
+  "01/03/2023", "Togo", 6835, "West",
+  "01/03/2023", "Antigua and Barbuda", 0, "Target"
   
 )
 ```
@@ -174,7 +178,7 @@ Aqui são dados os primeiros chutes.
 
 ```{r}
 (guesses <- database %>% 
-  filter(dia == "28/02/2023")
+  filter(dia == "01/03/2023")
  )
   
 chutes <- guesses %>% 
@@ -214,7 +218,7 @@ countries <- countries110 %>%
 countries %>% 
   dplyr::select(brk_name) %>% 
   filter(
-    grepl("Congo", brk_name)
+    grepl("Togo", brk_name)
   )
 ```
 
