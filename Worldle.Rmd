@@ -124,7 +124,20 @@ database <- tibble::tribble(
   
   "01/03/2023", "Lithuania", 8196, "Southwest",
   "01/03/2023", "Togo", 6835, "West",
-  "01/03/2023", "Antigua and Barbuda", 0, "Target"
+  "01/03/2023", "Antigua and Barbuda", 0, "Target",
+  
+  "08/03/2023", "Sweden", 1801, "South",
+  "08/03/2023", "Netherlands", 1472, "Southeast",
+  "08/03/2023", "Bosnia and Herzegovina", 267, "East",
+  "08/03/2023", "Croatia", 476, "East",
+  "08/03/2023", "Albania", 326, "North",
+  "08/03/2023", "Serbia", 0, "Target",
+  
+  "15/03/2023", "Czechia", 6082, "South",
+  "15/03/2023", "Ethiopia", 1821, "Southwest",
+  "15/03/2023", "Cameroon", 2288, "Southeast",
+  "15/03/2023", "Zimbabwe", 1743, "North",
+  "15/03/2023", "Burundi", 0, "Target"
   
 )
 ```
@@ -160,7 +173,10 @@ database_globle <- tibble::tribble(
   
   "28/02/2023", "Guatemala", 6, "Frio",
   "28/02/2023", "Haiti", 6, "Frio",
-  "28/02/2023", "Guyana", 1, "Target"
+  "28/02/2023", "Guyana", 1, "Target",
+  
+  "15/03/2023", "Burundi", 3, "Frio",
+  "15/03/2023", "Burkina Faso", 1, "Target"
 )
 ```
 Tornar a coluna `proximidade` `as.factor()` e dar cores conforme a proximidade.
@@ -178,11 +194,12 @@ Aqui são dados os primeiros chutes.
 
 ```{r}
 (guesses <- database %>% 
-  filter(dia == "01/03/2023")
+  filter(dia == "15/03/2023")
  )
-  
-chutes <- guesses %>% 
-  dplyr::select(pais)
+
+(chutes <- guesses %>% 
+    dplyr::select(pais)
+)
 # 
 #   tibble::tribble(
 #   ~pais, ~distancia, ~direcao,
@@ -218,7 +235,7 @@ countries <- countries110 %>%
 countries %>% 
   dplyr::select(brk_name) %>% 
   filter(
-    grepl("Togo", brk_name)
+    grepl("Herz", brk_name)
   )
 ```
 
@@ -228,6 +245,7 @@ guesses <- guesses %>%
   mutate(
     pais = recode(
       .x = pais, 
+      "Bosnia and Herzegovina" = "Bosnia and Herz.",
       "Eswatini" = "eSwatini",
       "Congo" = "Republic of the Congo"
     )
